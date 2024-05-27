@@ -1,8 +1,6 @@
 #include <raylib.h>
 #include <raymath.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <time.h>
 
 #define WIDTH 500
 #define HEIGHT 500
