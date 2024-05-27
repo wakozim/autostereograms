@@ -9,7 +9,7 @@ This program generates an [autostereogram](https://en.wikipedia.org/wiki/Autoste
 ## Usage
 ```console
 $ ./build.sh
-$ ./build/stereograms <depth-map.png> [pattern.png]
+$ ./build/autostereograms <depth-map.png> [pattern.png]
 ```
 
 ## Dependencies
