@@ -11,6 +11,12 @@
 Color colors[] = {WHITE, BLACK, GREEN, BLUE, RED};
 #define COLORS_COUNT (sizeof(colors)/sizeof(colors[0]))
 
+typedef enum {
+    ALERT_NONE = 0,
+    ALERT_SUCCES,
+    ALERT_FAILURE
+} AlertState;
+
 
 void print_usage(const char *program)
 {
@@ -90,7 +96,7 @@ int main(int argc, const char **argv)
     
     Texture2D texture = LoadTextureFromImage(output);
     
-    bool draw_alert = false;
+    AlertState draw_alert = ALERT_NONE;
     float time = 0.0f;
     while (!WindowShouldClose()) {
         BeginDrawing();
@@ -103,10 +109,12 @@ int main(int argc, const char **argv)
             int text_y = GetScreenHeight()/2 + 10 + texture.height/2;
             DrawText(text, text_x, text_y, 30, WHITE);
             
-            if (draw_alert) {
+            if (draw_alert != ALERT_NONE) {
                 int alert_text_size = 30;
                 int alert_text_pad = 10;
-                const char *alert_text = "File saved as `output.png` successfully!";
+                const char *alert_text_succes  = "Image saved as `output.png` successfully!";
+                const char *alert_text_failure = "Cannot save image. Sorry :(";
+                const char *alert_text = draw_alert == ALERT_SUCCES ? alert_text_succes : alert_text_failure;
 
                 int alert_margin = 25;
                 int alert_width = MeasureText(alert_text, alert_text_size) + alert_text_pad*2;
@@ -119,13 +127,16 @@ int main(int argc, const char **argv)
                 DrawText(alert_text, alert_x + alert_text_pad, alert_y + alert_text_pad, alert_text_size, WHITE);
 
                 time -= GetFrameTime();
-                if (time <= 0.0f) draw_alert = false;
+                if (time <= 0.0f) draw_alert = ALERT_NONE;
             }
 
             if (IsKeyPressed(KEY_S)) {
-                ExportImage(output, "output.png");
+                if (ExportImage(output, "output.png")) {
+                    draw_alert = ALERT_SUCCES;
+                } else {
+                    draw_alert = ALERT_FAILURE;
+                }
                 time = 2.0f;
-                draw_alert = true;
             }
         EndDrawing();
     }
