@@ -48,12 +48,18 @@ int main(int argc, const char **argv)
     SetTargetFPS(60);
 
     Image depth_map = LoadImage(depth_map_filepath);
+    if (!IsImageReady(depth_map)) {
+        return 1;
+    }
     
     Image pattern; 
     if (patter_filepath == NULL) {
         pattern = GenImageWhiteNoise(PATTERN_WIDTH, PATTERN_HEIGHT, 0.5);
     } else {
         pattern = LoadImage(patter_filepath); 
+        if (!IsImageReady(pattern)) {
+            return 1;
+        }
     }
 
     Image output = GenImageColor(depth_map.width, depth_map.height, WHITE);
