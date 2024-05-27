@@ -41,7 +41,7 @@ int main(int argc, const char **argv)
     const char *depth_map_filepath = shift_args(&argc, &argv);
 
     const char *patter_filepath = NULL; 
-    if (argc > 1) {
+    if (argc >= 1) {
         patter_filepath = shift_args(&argc, &argv); 
     }
     
