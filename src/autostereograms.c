@@ -20,7 +20,7 @@ typedef enum {
 
 void print_usage(const char *program)
 {
-    printf("USAGE: %s <depth-map.png> [pattern.png]\n", program);
+    printf("Usage: %s <depth-map.png> [pattern.png]\n", program);
 }
 
 
@@ -54,7 +54,7 @@ int main(int argc, const char **argv)
     SetTargetFPS(60);
 
     Image depth_map = LoadImage(depth_map_filepath);
-    if (!IsImageReady(depth_map)) {
+    if (!IsImageValid(depth_map)) {
         return 1;
     }
     
@@ -63,7 +63,7 @@ int main(int argc, const char **argv)
         pattern = GenImageWhiteNoise(PATTERN_WIDTH, PATTERN_HEIGHT, 0.5);
     } else {
         pattern = LoadImage(patter_filepath); 
-        if (!IsImageReady(pattern)) {
+        if (!IsImageValid(pattern)) {
             return 1;
         }
     }
