@@ -15,7 +15,9 @@
 #define DEFAULT_TEXT_SIZE 30
 #define TEXT_MARGIN 25
 
-#define BACKGROUND_COLOR ColorFromHSV(0, 0.0f, 0.25f)
+#define BACKGROUND_COLOR    ColorFromHSV(  0, 0.0f, 0.25f)
+#define ALERT_SUCCESS_COLOR ColorFromHSV(130, 0.6f, 0.8f )
+#define ALERT_FAILURE_COLOR ColorFromHSV(  0, 0.6f, 0.8f )
 
 
 Color colors[] = {WHITE, BLACK, GREEN, BLUE, RED};
@@ -37,15 +39,14 @@ const char *shift_args(int *argc, const char ***argv)
 }
 
 
-typedef enum AlertState {
-    ALERT_NONE = 0,
+typedef enum AlertType {
     ALERT_SUCCES,
-    ALERT_FAILURE
-} AlertState;
+    ALERT_FAILURE,
+} AlertType;
 
 typedef struct AlertMessage {
     char text[1024];
-    AlertState state;
+    AlertType type;
     float time;
 } AlertMessage;
 
@@ -55,15 +56,14 @@ typedef struct AlertMessages {
     int size;
 } AlertMessages;
 
-
 AlertMessages alert_messages = {0};
 
 
-void add_alert_message(const char *message, AlertState state)
+void add_alert_message(const char *message, AlertType type)
 {
     int i = (alert_messages.start + alert_messages.size) % MAX_ALERT_MESSAGES;
     strcpy(alert_messages.messages[i].text, message);
-    alert_messages.messages[i].state = state;
+    alert_messages.messages[i].type = type;
     alert_messages.messages[i].time = 1.5f;
 
     if (alert_messages.size < MAX_ALERT_MESSAGES)
@@ -212,8 +212,7 @@ void draw_alert(void)
             int alert_x = GetScreenWidth() - alert_width - ALERT_MARGIN;
             alert_y += ALERT_MARGIN;
 
-            Color color = GREEN;
-            color = msg->state == ALERT_FAILURE ? RED : color;
+            Color color = msg->type == ALERT_FAILURE ? ALERT_FAILURE_COLOR : ALERT_SUCCESS_COLOR;
 
             DrawRectangle(alert_x, alert_y, alert_width, alert_height, color);
             DrawText(msg->text, alert_x + ALERT_TEXT_PAD, alert_y + ALERT_TEXT_PAD, ALERT_TEXT_SIZE, WHITE);
