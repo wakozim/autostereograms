@@ -3,7 +3,7 @@
 This program generates an [autostereogram](https://en.wikipedia.org/wiki/Autostereogram) based on a depth map!
 
 <p align=center>
-  <img src="./assets/example.png">
+  <img src="./assets/images/example.png">
 </p>
 
 ## Usage

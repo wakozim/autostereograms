@@ -6,6 +6,8 @@
 #define GUI_IMPLEMENTATION
 #include "gui.h"
 
+#define FONT_FILE_PATH "./assets/fonts/IosevkaNerdFont-Regular.ttf"
+
 #define FACTOR 90
 #define WIDTH (FACTOR * 16)
 #define HEIGHT (FACTOR * 9)
@@ -14,8 +16,10 @@
 #define MAX_ALERT_MESSAGES 10
 #define ALERT_MARGIN 10
 #define ALERT_TEXT_SIZE 30
+#define ALERT_TEXT_SPACING (ALERT_TEXT_SIZE/10.f)
 #define ALERT_TEXT_PAD 10
 #define DEFAULT_TEXT_SIZE 30
+#define DEFAULT_TEXT_SPACING (DEFAULT_TEXT_SIZE/10.f)
 #define TEXT_MARGIN 25
 
 #define BACKGROUND_COLOR    ColorFromHSV(  0, 0.0f, 0.15f)
@@ -151,7 +155,7 @@ void end_tooltip_frame(void)
 {
     if (!tooltip_show) return;
 
-    Vector2 text_size = MeasureTextEx(font, tooltip_buffer, 30, 3);
+    Vector2 text_size = MeasureTextEx(font, tooltip_buffer, DEFAULT_TEXT_SIZE, DEFAULT_TEXT_SPACING);
 
     Vector2 rect_size = {
         .x = text_size.x + 20,
@@ -164,21 +168,21 @@ void end_tooltip_frame(void)
     };
 
     Rectangle boundary = {
-        rect_pos.x, 
-        rect_pos.y, 
-        rect_size.x, 
+        rect_pos.x,
+        rect_pos.y,
+        rect_size.x,
         rect_size.y
     };
 
     DrawRectangleRec(boundary, IMAGE_COLOR);
     DrawRectangleLinesEx(boundary, 2, BLACK);
-    gui_draw_text_centered(font, tooltip_buffer, boundary, 30, 3, WHITE);
+    gui_draw_text_centered(font, tooltip_buffer, boundary, DEFAULT_TEXT_SIZE, DEFAULT_TEXT_SPACING, WHITE);
 }
 
 bool draw_button(Rectangle rect, const char *text, const char *hover_text)
 {
     DrawRectangleRec(rect, IMAGE_COLOR);
-    gui_draw_text_centered(font, text, rect, 30, 3, WHITE);
+    gui_draw_text_centered(font, text, rect, DEFAULT_TEXT_SIZE, DEFAULT_TEXT_SPACING, WHITE);
     bool is_hovered = CheckCollisionPointRec(GetMousePosition(), rect);
     if (is_hovered) {
         DrawRectangleLinesEx(rect, 3, WHITE);
@@ -231,7 +235,7 @@ void draw_image_slot(Rectangle rect, const char *name, Image *image, Texture *te
 {
     DrawRectangleRec(rect, IMAGE_COLOR);
     layout_begin(GUI_LAYOUT_VERTICAL, rect, 10, 10, 10);
-    gui_draw_text_centered(font, name, layout_slot(), 30, 3, WHITE);
+    gui_draw_text_centered(font, name, layout_slot(), DEFAULT_TEXT_SIZE, DEFAULT_TEXT_SPACING, WHITE);
     Rectangle drop_boundary = layout_slot_ex(9);
     if (IsTextureValid(*texture)) {
         Rectangle source = {
@@ -275,7 +279,7 @@ void draw_drag_and_drop_screen(void)
 
     layout_begin(GUI_LAYOUT_VERTICAL, screen_rect(), 11, 10, 25);
 
-    gui_draw_text_centered(font, "Drag and drop image file", layout_slot(), 30, 3, WHITE);
+    gui_draw_text_centered(font, "Drag and drop image file", layout_slot(), DEFAULT_TEXT_SIZE, DEFAULT_TEXT_SPACING, WHITE);
     layout_begin(GUI_LAYOUT_HORIZONTAL, layout_slot_ex(8), 2, 25, 0);
     draw_image_slot(layout_slot(), "Depth map", &depth_map, &depth_map_texture);
     draw_image_slot(layout_slot(), "Pattern image", &pattern, &pattern_texture);
@@ -295,7 +299,7 @@ void draw_drag_and_drop_screen(void)
             state = STATE_SHOW_AUTOSTEREOGRAM;
         }
     }
-    
+
     if (draw_button(layout_slot(), "Exit", "Exit from program [ESC]")) {
         state = STATE_EXIT;
     }
@@ -318,8 +322,9 @@ void draw_alert(void)
         AlertMessage *msg = &alert_messages.messages[index];
 
         if (msg->time >= 0.0f) {
-            int alert_width = MeasureText(msg->text, ALERT_TEXT_SIZE) + ALERT_TEXT_PAD*2;
-            int alert_height = ALERT_TEXT_SIZE + ALERT_TEXT_PAD*2;
+            Vector2 text_size = MeasureTextEx(font, msg->text, ALERT_TEXT_SIZE, ALERT_TEXT_SIZE/10);
+            int alert_width = text_size.x + ALERT_TEXT_PAD*2;
+            int alert_height = text_size.y + ALERT_TEXT_PAD*2;
 
             int alert_x = GetScreenWidth() - alert_width - ALERT_MARGIN;
             alert_y += ALERT_MARGIN;
@@ -327,7 +332,10 @@ void draw_alert(void)
             Color color = msg->type == ALERT_FAILURE ? ALERT_FAILURE_COLOR : ALERT_SUCCESS_COLOR;
 
             DrawRectangle(alert_x, alert_y, alert_width, alert_height, color);
-            DrawText(msg->text, alert_x + ALERT_TEXT_PAD, alert_y + ALERT_TEXT_PAD, ALERT_TEXT_SIZE, WHITE);
+            Vector2 pos = {
+                alert_x + ALERT_TEXT_PAD, alert_y + ALERT_TEXT_PAD
+            };
+            DrawTextEx(font, msg->text, pos, ALERT_TEXT_SIZE, ALERT_TEXT_SPACING, WHITE);
 
             alert_y += alert_height;
 
@@ -359,8 +367,8 @@ int main(int argc, const char **argv)
     load_image_if_exists(&depth_map, &depth_map_texture, shift_args(&argc, &argv));
     load_image_if_exists(&pattern, &pattern_texture, shift_args(&argc, &argv));
 
-    font = GetFontDefault();
-    
+    font = LoadFontEx(FONT_FILE_PATH, DEFAULT_TEXT_SIZE, NULL, 0);
+
     bool exit = false;
 
     while (!WindowShouldClose() && !exit) {
