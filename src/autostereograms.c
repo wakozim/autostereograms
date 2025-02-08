@@ -22,6 +22,8 @@
 #define DEFAULT_TEXT_SPACING (DEFAULT_TEXT_SIZE/10.f)
 #define TEXT_MARGIN 25
 
+#define MAX_ALERT_MESSAGE_TIME 2.5f
+
 #define BACKGROUND_COLOR    ColorFromHSV(  0, 0.0f, 0.15f)
 #define IMAGE_COLOR         ColorFromHSV(  0, 0.0f, 0.20f)
 #define ALERT_SUCCESS_COLOR ColorFromHSV(130, 0.6f, 0.8f )
@@ -74,7 +76,7 @@ void add_alert_message(const char *message, AlertType type)
     int i = (alert_messages.start + alert_messages.size) % MAX_ALERT_MESSAGES;
     strcpy(alert_messages.messages[i].text, message);
     alert_messages.messages[i].type = type;
-    alert_messages.messages[i].time = 2.5f;
+    alert_messages.messages[i].time = MAX_ALERT_MESSAGE_TIME;
 
     if (alert_messages.size < MAX_ALERT_MESSAGES)
         alert_messages.size += 1;
@@ -193,21 +195,17 @@ bool draw_button(Rectangle rect, const char *text, const char *hover_text)
 }
 
 
-void draw_autostereogram_screen(void)
+void draw_exit_button(Rectangle boundary)
 {
-    layout_begin(GUI_LAYOUT_VERTICAL, screen_rect(), 12, 15, 10);
+    if (draw_button(boundary, "Exit", "Exit from program [ESC]")) {
+        state = STATE_EXIT;
+    }
+}
 
-    Rectangle source = {
-        .x = 0,
-        .y = 0,
-        .width = texture.width,
-        .height = texture.height,
-    };
-    Rectangle dest = layout_slot_ex(9);
-    DrawRectangleRec(dest, IMAGE_COLOR);
-    DrawTexturePro(texture, source, gui_fit_rect(dest, source), Vector2Zero(), 0.f, WHITE);
 
-    if (draw_button(layout_slot(), "Save", "Save result [S]") || IsKeyPressed(KEY_S)) {
+void draw_save_button(Rectangle boundary)
+{
+    if (draw_button(boundary, "Save", "Save result [S]") || IsKeyPressed(KEY_S)) {
         const char *text_success = "Image saved as `output.png` successfully!";
         const char *text_failure = "Cannot save image. Sorry :(";
         if (ExportImage(output, "output.png")) {
@@ -216,15 +214,55 @@ void draw_autostereogram_screen(void)
             add_alert_message(text_failure, ALERT_FAILURE);
         }
     }
+}
 
-    if (draw_button(layout_slot(), "Return", "Return to main screen [Q]") || IsKeyPressed(KEY_Q)) {
+
+void draw_return_button(Rectangle boundary)
+{
+    if (draw_button(boundary, "Return", "Return to main screen [Q]") || IsKeyPressed(KEY_Q)) {
         state = STATE_DRAG_AND_DROP;
     }
 
-    if (draw_button(layout_slot(), "Exit", "Exit from program [ESC]")) {
-        state = STATE_EXIT;
-    }
+}
 
+
+void draw_generate_button(Rectangle boundary)
+{
+    if (draw_button(boundary, "Generate", "Generate autostereogram [G]")) {
+        if (!IsImageValid(depth_map)) {
+            add_alert_message("No depth map is provided!", ALERT_FAILURE);
+            return;
+        }
+
+        if (!IsImageValid(pattern)) {
+            pattern = GenImageWhiteNoise(PATTERN_WIDTH, PATTERN_HEIGHT, 0.5);
+        }
+
+        if (generate_autostereogram()) {
+            state = STATE_SHOW_AUTOSTEREOGRAM;
+        }
+    }
+}
+
+
+void draw_autostereogram_screen(void)
+{
+    layout_begin(GUI_LAYOUT_VERTICAL, screen_rect(), 12, 15, 10);
+
+    Rectangle texture_rect = {
+        .x = 0,
+        .y = 0,
+        .width = texture.width,
+        .height = texture.height,
+    };
+    Rectangle dest = layout_slot_ex(9);
+    DrawRectangleRec(dest, IMAGE_COLOR);
+    DrawTexturePro(texture, texture_rect, gui_fit_rect(dest, texture_rect), Vector2Zero(), 0.f, WHITE);
+
+    draw_save_button(layout_slot());
+    draw_return_button(layout_slot());    
+    draw_exit_button(layout_slot());
+    
     layout_end();
 
     return;
@@ -259,7 +297,7 @@ void draw_image_slot(Rectangle rect, const char *name, Image *image, Texture *te
         return;
     }
 
-    if (IsImageValid(*image)) UnloadImage(*image);
+    UnloadImage(*image);
     *image = LoadImage(dropped_files.paths[0]);
     if (!IsImageValid(*image)) {
         add_alert_message("Couldn't load image!", ALERT_FAILURE);
@@ -267,12 +305,13 @@ void draw_image_slot(Rectangle rect, const char *name, Image *image, Texture *te
         return;
     }
 
-    if (IsTextureValid(*texture)) UnloadTexture(*texture);
+    UnloadTexture(*texture);
     *texture = LoadTextureFromImage(*image);
 
     add_alert_message(TextFormat("%s loaded successfully", name), ALERT_SUCCES);
     UnloadDroppedFiles(dropped_files);
 }
+
 
 void draw_drag_and_drop_screen(void)
 {
@@ -285,24 +324,8 @@ void draw_drag_and_drop_screen(void)
     draw_image_slot(layout_slot(), "Pattern image", &pattern, &pattern_texture);
     layout_end();
 
-    if (draw_button(layout_slot(), "Generate", "Generate autostereogram [G]")) {
-        if (!IsImageValid(depth_map)) {
-            add_alert_message("No depth map is provided", ALERT_FAILURE);
-            return;
-        }
-
-        if (!IsImageValid(pattern)) {
-            pattern = GenImageWhiteNoise(PATTERN_WIDTH, PATTERN_HEIGHT, 0.5);
-        }
-
-        if (generate_autostereogram()) {
-            state = STATE_SHOW_AUTOSTEREOGRAM;
-        }
-    }
-
-    if (draw_button(layout_slot(), "Exit", "Exit from program [ESC]")) {
-        state = STATE_EXIT;
-    }
+    draw_generate_button(layout_slot());
+    draw_exit_button(layout_slot());
 
     layout_end();
 
@@ -322,6 +345,8 @@ void draw_alert(void)
         AlertMessage *msg = &alert_messages.messages[index];
 
         if (msg->time >= 0.0f) {
+            float amount = msg->time/MAX_ALERT_MESSAGE_TIME;
+
             Vector2 text_size = MeasureTextEx(font, msg->text, ALERT_TEXT_SIZE, ALERT_TEXT_SIZE/10);
             int alert_width = text_size.x + ALERT_TEXT_PAD*2;
             int alert_height = text_size.y + ALERT_TEXT_PAD*2;
@@ -330,12 +355,13 @@ void draw_alert(void)
             alert_y += ALERT_MARGIN;
 
             Color color = msg->type == ALERT_FAILURE ? ALERT_FAILURE_COLOR : ALERT_SUCCESS_COLOR;
+            color = ColorAlpha(color, amount);
 
             DrawRectangle(alert_x, alert_y, alert_width, alert_height, color);
             Vector2 pos = {
                 alert_x + ALERT_TEXT_PAD, alert_y + ALERT_TEXT_PAD
             };
-            DrawTextEx(font, msg->text, pos, ALERT_TEXT_SIZE, ALERT_TEXT_SPACING, WHITE);
+            DrawTextEx(font, msg->text, pos, ALERT_TEXT_SIZE, ALERT_TEXT_SPACING, ColorAlpha(WHITE, amount));
 
             alert_y += alert_height;
 
